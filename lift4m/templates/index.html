@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Lift4M Demo – Login{% endblock %}
+
+{% block content %}
+<h1 class="title">Lift4M Demo Platform</h1>
+<p class="subtitle">Select a user to begin</p>
+
+<div class="user-grid">
+  {% for uid, user in users.items() %}
+  <div class="user-card">
+    <h2>{{ user.name }}</h2>
+    <p class="role">Role: {{ user.role.value.replace('_', ' ').title() }}</p>
+    <a class="btn" href="/dashboard?user_id={{ uid }}">Log in</a>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
