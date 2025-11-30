@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Project – {{ project.name }}{% endblock %}
+
+{% block content %}
+<a href="/dashboard?user_id={{ user.id }}" class="btn">← Back to Dashboard</a>
+
+<h2>{{ project.name }}</h2>
+<p><strong>Project Type:</strong> {{ project.project_type.value.replace('_', ' ').title() }}</p>
+<p><strong>Progress:</strong> {{ '%.0f'|format(project.progress_percentage()) }}%</p>
+
+<div class="meta">
+  {% for key, value in project.meta.items() %}
+  <p><strong>{{ key.replace('_', ' ').title() }}:</strong> {{ value }}</p>
+  {% endfor %}
+</div>
+
+<div class="assignments">
+  <h3>Assignments</h3>
+  <p><strong>Customer:</strong> {{ USERS[project.customer_id].name }}</p>
+  <p><strong>Manufacturer:</strong>
+    {% if project.manufacturer_id %}
+      {{ USERS[project.manufacturer_id].name }}
+    {% else %}
+      Not assigned
+    {% endif %}
+  </p>
+  <p><strong>Maintenance Provider:</strong>
+    {% if project.maintenance_provider_id %}
+      {{ USERS[project.maintenance_provider_id].name }}
+    {% else %}
+      Not assigned
+    {% endif %}
+  </p>
+
+  {% if user.role == Role.SUPER_ADMIN %}
+    {% if not project.manufacturer_id %}
+    <form action="/project/{{ project.id }}/assign_manufacturer" method="get">
+      <input type="hidden" name="user_id" value="{{ user.id }}" />
+      <label>Assign Manufacturer:</label>
+      <select name="manufacturer_id">
+        {% for uid, u in USERS.items() if u.role == Role.MANUFACTURER %}
+        <option value="{{ uid }}">{{ u.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Assign</button>
+    </form>
+    {% endif %}
+
+    {% if not project.maintenance_provider_id %}
+    <form action="/project/{{ project.id }}/assign_maintenance" method="get">
+      <input type="hidden" name="user_id" value="{{ user.id }}" />
+      <label>Assign Maintenance:</label>
+      <select name="provider_id">
+        {% for uid, u in USERS.items() if u.role == Role.MAINTENANCE_PROVIDER %}
+        <option value="{{ uid }}">{{ u.name }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Assign</button>
+    </form>
+    {% endif %}
+  {% endif %}
+</div>
+
+<h3>Timeline</h3>
+<div class="timeline">
+  {% for idx, stage in enumerate(project.stages) %}
+  <div class="timeline-item {{ stage.status }}">
+    <div class="stage-header">
+      <span class="stage-name">{{ stage.definition.name }}</span>
+      <span class="stage-status {{ stage.status }}">{{ stage.status.replace('_', ' ') }}</span>
+    </div>
+    <div class="stage-meta">
+      {% if stage.start_date %}<span>Start: {{ stage.start_date }}</span>{% endif %}
+      {% if stage.end_date %}<span style="margin-left: 0.5rem;">End: {{ stage.end_date }}</span>{% endif %}
+    </div>
+    {% if stage.notes %}
+    <div class="stage-notes">
+      {% for note in stage.notes %}
+      <div>• {{ note }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if user.role == Role.SUPER_ADMIN
+          or (user.role == Role.MANUFACTURER and project.manufacturer_id == user.id)
+          or (user.role == Role.MAINTENANCE_PROVIDER and project.maintenance_provider_id == user.id) %}
+    <form class="inline-form" action="/project/{{ project.id }}/stage/update" method="get">
+      <input type="hidden" name="user_id" value="{{ user.id }}" />
+      <input type="hidden" name="stage_index" value="{{ idx }}" />
+      <select name="new_status">
+        <option value="not_started" {% if stage.status == 'not_started' %}selected{% endif %}>Not started</option>
+        <option value="in_progress" {% if stage.status == 'in_progress' %}selected{% endif %}>In progress</option>
+        <option value="completed" {% if stage.status == 'completed' %}selected{% endif %}>Completed</option>
+        <option value="on_hold" {% if stage.status == 'on_hold' %}selected{% endif %}>On hold</option>
+      </select>
+      <input type="text" name="note" placeholder="Add note (optional)" />
+      <button type="submit">Update</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
