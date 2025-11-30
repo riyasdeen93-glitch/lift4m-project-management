@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Dashboard – {{ user.name }}{% endblock %}
+
+{% block content %}
+<h2>Project Dashboard</h2>
+
+{% if projects %}
+<table class="projects-table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Type</th>
+      <th>Progress</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for project in projects %}
+    <tr>
+      <td><a href="/project/{{ project.id }}?user_id={{ user.id }}">{{ project.name }}</a></td>
+      <td>{{ project.project_type.value.replace('_', ' ').title() }}</td>
+      <td>
+        <div class="progress-bar">
+          <div class="progress-bar-inner" style="width: {{ project.progress_percentage() }}%;"></div>
+        </div>
+        <small>{{ '%.0f'|format(project.progress_percentage()) }}%</small>
+      </td>
+      <td>
+        {% if user.role == Role.SUPER_ADMIN %}
+          {% if not project.manufacturer_id %}
+          <form class="inline-form" action="/project/{{ project.id }}/assign_manufacturer" method="get">
+            <input type="hidden" name="user_id" value="{{ user.id }}" />
+            <label>Assign Manufacturer:</label>
+            <select name="manufacturer_id">
+              {% for uid, u in USERS.items() if u.role == Role.MANUFACTURER %}
+              <option value="{{ uid }}">{{ u.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit">Assign</button>
+          </form>
+          {% else %}
+          <span>Manufacturer: {{ USERS[project.manufacturer_id].name }}</span>
+          {% endif %}
+          <br />
+          {% if not project.maintenance_provider_id %}
+          <form class="inline-form" action="/project/{{ project.id }}/assign_maintenance" method="get">
+            <input type="hidden" name="user_id" value="{{ user.id }}" />
+            <label>Assign Maint.:</label>
+            <select name="provider_id">
+              {% for uid, u in USERS.items() if u.role == Role.MAINTENANCE_PROVIDER %}
+              <option value="{{ uid }}">{{ u.name }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit">Assign</button>
+          </form>
+          {% else %}
+          <span>Maint.: {{ USERS[project.maintenance_provider_id].name }}</span>
+          {% endif %}
+        {% else %}
+          <a class="btn" href="/project/{{ project.id }}?user_id={{ user.id }}">View</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No projects found.</p>
+{% endif %}
+{% endblock %}
